@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pymongo
 
-from findhouse_crawler.settings import MONGO_HOST, MONGO_PORT, MONGO_DB_NAME, MONGO_DB_COLLECTION
+from findhouse_crawler.settings import MONGO_HOST, MONGO_PORT, MONGO_DB_NAME, MONGO_DB_COLLECTION, MONGO_USER, \
+    MONGO_PASSWORD
 
 
 # Define your item pipelines here
@@ -12,15 +13,11 @@ from findhouse_crawler.settings import MONGO_HOST, MONGO_PORT, MONGO_DB_NAME, MO
 
 class FindhouseCrawlerPipeline(object):
     def __init__(self):
-        host = MONGO_HOST
-        port = MONGO_PORT
-        db_name = MONGO_DB_NAME
-        collection_name = MONGO_DB_COLLECTION
-        client = pymongo.MongoClient(host=host, port=port)
-        db = client[db_name]
-        self.collection = db[collection_name]
+        client = pymongo.MongoClient(host=MONGO_HOST, port=MONGO_PORT, username=MONGO_USER, password=MONGO_PASSWORD)
+        db = client[MONGO_DB_NAME]
+        self.collection = db[MONGO_DB_COLLECTION]
 
     def process_item(self, item, spider):
         data = dict(item)
-        self.collection.insert(data)
+        self.collection.insert_one(data)
         return item
