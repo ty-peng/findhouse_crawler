@@ -18,6 +18,7 @@ class FindhouseCrawlerPipeline(object):
         self.collection = db[MONGO_DB_COLLECTION]
 
     def process_item(self, item, spider):
-        data = dict(item)
-        self.collection.insert_one(data)
+        key = '{}_{}_{}'.format(item['source_site_type'], item['category'], item['source_id'])
+        item['key'] = key
+        self.collection.replace_one({"key": key}, item, True)
         return item
