@@ -45,6 +45,8 @@ class HouseBase(scrapy.Item):
     """ 区域 ID """
     business_area_id = scrapy.Field()
     """ 商圈 ID """
+    business_area = scrapy.Field()
+    """ 商圈 """
     community_id = scrapy.Field()
     """ 小区 ID """
     community_title = scrapy.Field()
