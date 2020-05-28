@@ -3,6 +3,15 @@
 from enum import Enum
 
 
+class Mode(Enum):
+    """ 数据抓取模式. """
+
+    INCREMENTAL_MODE = 1
+    """ 增量模式 """
+    FULL_MODE = 2
+    """ 全量模式 """
+
+
 class SourceSiteType(Enum):
     """ 房源来源网站类型. """
 
@@ -13,7 +22,7 @@ class SourceSiteType(Enum):
 class Category(Enum):
     """ 房源分类. """
 
-    RENTAL = 1
+    RENTAL = {'url_str': 'chuzu', 'code': 1}
     """ 出租房 """
 
 
