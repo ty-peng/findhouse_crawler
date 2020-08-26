@@ -5,7 +5,13 @@
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
+import base64
+import random
+import time
+
 from scrapy import signals
+from scrapy.downloadermiddlewares.retry import RetryMiddleware
+from scrapy.utils.response import response_status_message
 
 
 class FindhouseCrawlerSpiderMiddleware(object):
@@ -101,3 +107,62 @@ class FindhouseCrawlerDownloaderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
+class FindhouseCrawlerProxyMiddleware(object):
+
+    def __init__(self, proxy_server, proxy_user, proxy_pass):
+        self.proxy_server = proxy_server
+        self.proxy_user = proxy_user
+        self.proxy_pass = proxy_pass
+        self.proxy_auth = "Basic " + base64.urlsafe_b64encode(
+            bytes((self.proxy_user + ":" + self.proxy_pass), "ascii")).decode("utf8")
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            proxy_server=crawler.settings.get('PROXY_SERVER'),
+            proxy_user=crawler.settings.get('PROXY_USER'),
+            proxy_pass=crawler.settings.get('PROXY_PASSWORD')
+        )
+
+    def process_request(self, request, spider):
+        if request.url.find('callback') != -1 or request.url.find('errordef') != -1 or request.url.find(
+                'verifycode') != -1 or request.url.find('antibot') != -1:
+            try:
+                time.sleep(2)
+                redirect_urls = request.meta.get("redirect_urls")[0]
+                if redirect_urls:
+                    request._set_url(redirect_urls)
+            except Exception as e:
+                _ = e
+        request.meta["proxy"] = self.proxy_server
+        request.headers["Proxy-Authorization"] = self.proxy_auth
+
+
+class FindhouseCrawlerRandomUAMiddleware(object):
+    def __init__(self, agents):
+        self.agent = agents
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            agents=crawler.settings.get('USER_AGENT')
+        )
+
+    def process_request(self, request, spider):
+        # 随机获取设置中的一个 User-Agent
+        request.headers.setdefault('User-Agent', random.choice(self.agent))
+
+
+class FindhouseCrawlerDownloadRetryMiddleware(RetryMiddleware):
+    def process_response(self, request, response, spider):
+        if response.status in self.retry_http_codes:
+            reason = response_status_message(response.status)
+            return self._retry(request, reason, spider) or response
+        return response
+
+    def process_exception(self, request, exception, spider):
+        if isinstance(exception, self.EXCEPTIONS_TO_RETRY) \
+                and not request.meta.get('dont_retry', False):
+            return self._retry(request, exception, spider)
